@@ -1,0 +1,12 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Shared objects
+*.so
+*.so.*
+
+# Build folder
+build/
