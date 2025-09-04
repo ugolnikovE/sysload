@@ -1,77 +1,132 @@
 #include "sysload.h"
 #include <stdio.h>
-#include <unistd.h>
+#include <time.h>
+#include <errno.h>
+
+int sleep_float(float seconds)
+{
+        struct timespec req;
+        float sec_frac;
+
+        if (seconds <= 0.0f) {
+                return 0;
+        }
+
+        req.tv_sec = (time_t)seconds;
+        sec_frac = seconds - (float)req.tv_sec;
+        req.tv_nsec = (long)(sec_frac * 1000000000L);
+
+        while (nanosleep(&req, &req) == -1) {
+                if (errno != EINTR) {
+                        return -1;
+                }
+        }
+        return 0;
+}
 
 
-int _get_cpu_times(cpu_stat_t *timesptr)
+int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
 {
         FILE* fptr;
+        int ret;
+
         fptr = fopen("/proc/stat", "r");
-        
         if (fptr == NULL) {
-                perror("Can't open /proc/stat file\n");
+                perror("Can't open /proc/stat file");
                 return -1;
         }
 
-        if (fscanf(fptr, "%*s %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu",
-                   &timesptr->user,
-                   &timesptr->user_nice,
-                   &timesptr->system,
-                   &timesptr->idle,
-                   &timesptr->iowait,
-                   &timesptr->irq,
-                   &timesptr->softirq,
-                   &timesptr->steal,
-                   &timesptr->guest,
-                   &timesptr->guest_nice) == 10) {
-                fclose(fptr);
+        ret = fscanf(fptr, "%*s %llu %llu %llu %llu %llu %llu %llu %llu",
+                     &snapshot->user,
+                     &snapshot->nice,
+                     &snapshot->system,
+                     &snapshot->idle,
+                     &snapshot->iowait,
+                     &snapshot->irq,
+                     &snapshot->softirq,        
+                     &snapshot->steal);
+        fclose(fptr); 
+
+        if (ret == 8) {
                 return 0;
-        } else { 
-                fclose(fptr);
-                perror("Can't read /proc/stat file\n");
-                return -1;
+        } else if (ret = EOF) {
+                perror("Failed to read from /proc/stat (EOF)");
+        } else {
+                fprintf(stderr, "Failed to parse /proc/stat: expected 8 fields, got %d\n", 
+                        ret); 
         }
+        return -1;
 }
 
 
-float get_cpu_load(int measurement_inteval)
+int sl_cpu_calculate(const sl_cpu_raw_t *start, const sl_cpu_raw_t *end, sl_cpu_usage_t *result)
 {
-        cpu_stat_t start_stat, end_stat;
-        uint64_t total_start, total_end, idle_start, idle_end;
-        uint64_t total_diff, idle_diff;
-        float result;
+        uint64_t total_start, total_end;
+        uint64_t total_diff;
 
-        _get_cpu_times(&start_stat);
-        sleep(measurement_inteval);
-        _get_cpu_times(&end_stat);
+        total_start = start->user
+                    + start->nice
+                    + start->system
+                    + start->idle
+                    + start->iowait
+                    + start->irq
+                    + start->softirq
+                    + start->steal;
+        
+        total_end = end->user
+                  + end->nice
+                  + end->system
+                  + end->idle
+                  + end->iowait
+                  + end->irq
+                  + end->softirq
+                  + end->steal;
 
-        total_start = start_stat.user 
-                    + start_stat.user_nice
-                    + start_stat.system 
-                    + start_stat.idle 
-                    + start_stat.iowait 
-                    + start_stat.irq 
-                    + start_stat.softirq
-                    + start_stat.steal;
-    
-        total_end = end_stat.user
-                  + end_stat.user_nice 
-                  + end_stat.system 
-                  + end_stat.idle 
-                  + end_stat.iowait 
-                  + end_stat.irq 
-                  + end_stat.softirq 
-                  + end_stat.steal;
-
-
-        idle_start = start_stat.idle + start_stat.iowait;
-        idle_end = end_stat.idle + end_stat.iowait;
+        if (total_end <= total_start) {
+                fprintf(stderr, "Error: invalid time interval or counter overflow\n");
+                return -1;
+        }
 
         total_diff = total_end - total_start;
-        idle_diff = idle_end - idle_start;
 
-        result = ((float)(total_diff - idle_diff) / total_diff) * 100.0f;
+        if (total_diff == 0) {
+                fprintf(stderr, "Error: zero time interval between measurements\n");
+                return -1;
+        }
+ 
+        result->user    = ((float)(end->user - start->user) / total_diff) * 100.0f;
+        result->nice    = ((float)(end->nice - start->nice) / total_diff) * 100.0f;
+        result->system  = ((float)(end->system - start->system) / total_diff) * 100.0f;
+        result->idle    = ((float)(end->idle - start->idle) / total_diff) * 100.0f;
+        result->iowait  = ((float)(end->iowait - start->iowait) / total_diff) * 100.0f;
+        result->irq     = ((float)(end->irq - start->irq) / total_diff) * 100.0f;
+        result->softirq = ((float)(end->softirq - start->softirq) / total_diff) * 100.0f;
+        result->steal   = ((float)(end->steal - start->steal) / total_diff) * 100.0f;
+        
+        result->total   = 100.0f - (result->idle + result->iowait);
 
-        return result;
+        return 0;
 }
 
+
+int sl_cpu_get_usage(float interval_sec, sl_cpu_usage_t *result)
+{
+        sl_cpu_raw_t start, end;
+
+        if (sl_cpu_get_raw(&start)) {
+                fprintf(stderr, "Can't get CPU start snapshot\n");
+                return -1;
+        }
+
+        if (sleep_float(interval_sec) == -1) {
+                perror("Sleep failed");
+                return -1;
+        }
+
+        if (sl_cpu_get_raw(&end)) {
+                fprintf(stderr, "Can't get CPU end snapshot\n");
+                return -1;
+        }
+
+        return sl_cpu_calculate(&start, &end, result);
+}

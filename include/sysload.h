@@ -1,39 +1,62 @@
-#ifndef _SYSLOAD_H
-#define _SYSLOAD_H
+#ifndef SYSLOAD_H
+#define SYSLOAD_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 
-/**
- * @struct cpu_stat_t
- * @brief CPU time statistics structure
- * 
- * Contains cumulative time values spent by CPU in various states,
- * measured in jiffies (typically 1/100 or 1/1000 of a second)
- */
-typedef struct 
+/* Raw CPU counters snapshot */
+typedef struct
 {
-        uint64_t user,
-                 user_nice,
-                 system,
-                 idle,
-                 iowait,
-                 irq,
-                 softirq,
-                 steal, 
-                 guest,
-                 guest_nice;
-} cpu_stat_t;
+        uint64_t user;
+        uint64_t nice;
+        uint64_t system;
+        uint64_t idle;
+        uint64_t iowait;
+        uint64_t irq;
+        uint64_t softirq;
+        uint64_t steal; 
+} sl_cpu_raw_t;
+
+/* Calculated CPU usage percentages */
+typedef struct
+{
+        float user;
+        float nice;
+        float system;
+        float idle;
+        float iowait;
+        float irq;
+        float softirq;
+        float steal;
+        float total;
+} sl_cpu_usage_t;
+
+/* Memory information */
+typedef struct
+{
+        uint64_t total;
+        uint64_t free;
+        uint64_t available;
+        uint64_t buffers;
+        uint64_t cached; 
+        uint64_t shared;
+        uint64_t used;
+        uint64_t swap_total;
+        uint64_t swap_free;
+        uint64_t swap_used;
+        float percent_used;
+} sl_mem_info_t;
+
+int sl_cpu_get_raw(sl_cpu_raw_t *snapshot);
+int sl_cpu_calculate(const sl_cpu_raw_t *start, const sl_cpu_raw_t *end, sl_cpu_usage_t *result);
+int sl_cpu_get_usage(float interval_sec, sl_cpu_usage_t *result);
 
 
-/**
- * @brief Calculates CPU load over specified time interval
- * 
- * Measures CPU utilization - percentage of time when CPU was busy
- * executing processes (not in idle or iowait state)
- * 
- * @param measurement_interval Measurement interval in seconds
- * @return CPU load percentage (0-100%) or negative value on error
- */
-float get_cpu_load(int measurement_inteval);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
