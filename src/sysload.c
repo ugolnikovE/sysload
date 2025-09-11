@@ -2,6 +2,21 @@
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
+#include <string.h>
+#include <inttypes.h>
+
+#define MEMINFO_LINE_SIZE 256
+#define MEMINFO_KEY_SIZE 32
+#define EXPECTED_MEMINFO_KEYS 8
+
+
+typedef struct
+{
+        const char *key;
+        size_t key_len;
+        uint64_t *field; 
+} meminfo_field_t;
+
 
 int sleep_float(float seconds)
 {
@@ -36,7 +51,7 @@ int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
                 return -1;
         }
 
-        ret = fscanf(fptr, "%*s %llu %llu %llu %llu %llu %llu %llu %llu",
+        ret = fscanf(fptr, "%*s" " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64,
                      &snapshot->user,
                      &snapshot->nice,
                      &snapshot->system,
@@ -49,7 +64,7 @@ int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
 
         if (ret == 8) {
                 return 0;
-        } else if (ret = EOF) {
+        } else if (ret == EOF) {
                 perror("Failed to read from /proc/stat (EOF)");
         } else {
                 fprintf(stderr, "Failed to parse /proc/stat: expected 8 fields, got %d\n", 
@@ -129,4 +144,86 @@ int sl_cpu_get_usage(float interval_sec, sl_cpu_usage_t *result)
         }
 
         return sl_cpu_calculate(&start, &end, result);
+}
+
+
+int parse_meminfo_line(const char *line, sl_mem_info_t *result)
+{       
+        char key[MEMINFO_KEY_SIZE];
+        uint64_t value = 0;
+
+        if (sscanf(line, "%31[^:]: %" SCNu64, key, &value) != 2) {
+                return -1;
+        }
+ 
+        meminfo_field_t fields[] = {
+                {"MemTotal",     8,  &result->total},
+                {"MemFree",      7,  &result->free},
+                {"MemAvailable", 12, &result->available},
+                {"Buffers",      7,  &result->buffers},
+                {"Cached",       6,  &result->cached},
+                {"Shmem",        5,  &result->shared}, 
+                {"SwapTotal",    9,  &result->swap_total},
+                {"SwapFree",     8,  &result->swap_free},
+                {NULL,           0,  NULL}
+        };
+
+        for (size_t i = 0; fields[i].key != NULL; i++) {
+                if (strncmp(key, fields[i].key, fields[i].key_len) == 0 &&
+                            key[fields[i].key_len] == '\0') {
+                        *(fields[i].field) = value;
+                        return 0;
+                }
+        }
+
+        return -1;
+}
+
+
+int sl_mem_calculate(sl_mem_info_t *result) 
+{       
+        int ret = 0; 
+        if ((result->total > 0) && (result->available > 0)) {
+                result->used = result->total - result->available;
+                result->percent_used = ((float)(result->used) / result->total) * 100.0f;
+        } else {
+                ret = -1;
+        }
+
+        if (result->swap_total > 0 && result->swap_free > 0) {
+                result->swap_used = result->swap_total - result->swap_free;
+        }
+
+        return ret;
+}
+
+
+int sl_mem_get_info(sl_mem_info_t *result)
+{
+        FILE* fptr;
+
+        fptr = fopen("/proc/meminfo", "r");
+        if (fptr == NULL) {
+                perror("Can't open /proc/meminfo file");
+                return -1;
+        }
+
+        memset(result, 0, sizeof(sl_mem_info_t));
+
+        char line[MEMINFO_LINE_SIZE];
+        int missing_fields = EXPECTED_MEMINFO_KEYS; 
+
+        while(fgets(line, sizeof(line), fptr) != NULL) {
+                if (parse_meminfo_line(line, result) == 0) {
+                        missing_fields--;
+                }
+                
+        }
+
+        if (sl_mem_calculate(result)) {
+                fprintf(stderr, "Failed calculate meminfo usage\n");
+        }
+
+        fclose(fptr);
+        return (EXPECTED_MEMINFO_KEYS - missing_fields);
 }
