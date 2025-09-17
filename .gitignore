@@ -10,3 +10,6 @@
 
 # Build folder
 build/
+
+# Service files
+.DS_store

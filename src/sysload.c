@@ -4,6 +4,8 @@
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
+#include <sys/statvfs.h>
+
 
 #define MEMINFO_LINE_SIZE 256
 #define MEMINFO_KEY_SIZE 32
@@ -226,4 +228,27 @@ int sl_mem_get_info(sl_mem_info_t *result)
 
         fclose(fptr);
         return (EXPECTED_MEMINFO_KEYS - missing_fields);
+}
+
+
+int sl_storage_get_info(const char *path, sl_storage_info_t *result)
+{
+        struct statvfs svfs;
+
+        if (statvfs(path, &svfs) == -1) {
+                perror("statvfs");
+                return -1;
+        }
+
+        uint64_t block_size = svfs.f_frsize;
+
+        result->total = (uint64_t)svfs.f_blocks * block_size;
+        result->free = (uint64_t)svfs.f_bfree * block_size;
+        result->available = (uint64_t)svfs.f_bavail * block_size;
+        
+        result->used = result->total - result->free;
+
+        result->percent_usage = ((double)result->used / result->total) * 100.0;
+
+        return 0; 
 }

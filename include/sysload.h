@@ -50,6 +50,16 @@ typedef struct
         float percent_used;
 } sl_mem_info_t;
 
+/* Filesysten storage information */
+typedef struct
+{
+        uint64_t total;
+        uint64_t free;
+        uint64_t available;
+        uint64_t used;
+        double percent_usage;
+} sl_storage_info_t;
+
 /**
  * @brief Get raw CPU counters from /proc/stat
  * @param snapshot Pointer to store raw counters
@@ -89,6 +99,13 @@ int sl_mem_calculate(sl_mem_info_t *result);
  */
 int sl_mem_get_info(sl_mem_info_t *result);
 
+/**
+ * @brief Get filesystem storage information for mounted path
+ * @param path Filesystem path to check
+ * @param result Pointer to store storage information
+ * @return 0 on success, -1 on error
+ */
+int sl_storage_get_info(const char *path, sl_storage_info_t *result);
 
 #ifdef __cplusplus
 }
