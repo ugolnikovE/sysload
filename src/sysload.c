@@ -42,6 +42,33 @@ int sleep_float(float seconds)
 }
 
 
+int sl_systime_get_info(sl_systime_info_t *result)
+{
+        FILE* fptr;
+        int ret;
+
+        fptr = fopen("/proc/uptime", "r");
+        if (fptr == NULL) {
+                perror("Can't open /proc/stat file");
+                return -1;
+        }
+
+        ret = fscanf(fptr, "%lf %lf", &result->uptime, &result->idle_time);
+
+        fclose(fptr);
+
+        if (ret == 2) {
+                return 0;
+        } else if (ret == EOF){
+                perror("Failed to read from /proc/uptime (EOF)");
+        } else {
+                fprintf(stderr, "Failed to parse /proc/uptime"); 
+        }
+
+        return -1; 
+}
+
+
 int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
 {
         FILE* fptr;

@@ -7,6 +7,13 @@ extern "C" {
 
 #include <stdint.h>
 
+
+/* System time information */
+typedef struct {
+        double uptime;
+        double idle_time;
+} sl_systime_info_t;
+
 /* Raw CPU counters snapshot */
 typedef struct
 {
@@ -59,6 +66,13 @@ typedef struct
         uint64_t used;
         double percent_usage;
 } sl_storage_info_t;
+
+/**
+ * @brief Get systime information from /proc/uptime
+ * @param result Pointer to store raw values
+ * @return 0 on success, -1 on error
+ */
+int sl_systime_get_info(sl_systime_info_t *result);
 
 /**
  * @brief Get raw CPU counters from /proc/stat
