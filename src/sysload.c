@@ -6,12 +6,6 @@
 #include <inttypes.h>
 #include <sys/statvfs.h>
 
-
-#define MEMINFO_LINE_SIZE 256
-#define MEMINFO_KEY_SIZE 32
-#define EXPECTED_MEMINFO_KEYS 8
-
-
 typedef struct
 {
         const char *key;
@@ -39,6 +33,17 @@ int sleep_float(float seconds)
                 }
         }
         return 0;
+}
+
+
+uint64_t sl_bytes_to_gb(uint64_t bytes)
+{
+        return bytes / (1024ULL * 1024ULL * 1024ULL);
+}
+
+uint64_t sl_kb_to_mb(uint64_t kb)
+{
+        return kb / 1024ULL;
 }
 
 

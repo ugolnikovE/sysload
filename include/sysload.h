@@ -7,6 +7,25 @@ extern "C" {
 
 #include <stdint.h>
 
+#define MEMINFO_LINE_SIZE 256
+#define MEMINFO_KEY_SIZE 32
+#define EXPECTED_MEMINFO_KEYS 8
+
+
+/**
+ * @brief Convert bytes to GB (rounded down)
+ * @param bytes Input value in bytes
+ * @return Value in GB
+ */
+uint64_t sl_bytes_to_gb(uint64_t bytes);
+
+/**
+ * @brief Convert KB to MB (rounded down)
+ * @param kb Input value in kb
+ * @return Value in MB
+ */
+uint64_t sl_kb_to_mb(uint64_t kb);
+
 
 /* System time information */
 typedef struct {
