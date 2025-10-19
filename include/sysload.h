@@ -12,6 +12,76 @@ extern "C" {
 #define EXPECTED_MEMINFO_KEYS 8
 
 
+/* ============================================================= */
+/*                        UNIT DEFINITIONS                       */
+/* ============================================================= */
+
+/* Memory values are in KB */
+typedef struct
+{
+    uint64_t total;        /**< Total memory in KB */
+    uint64_t free;         /**< Free memory in KB */
+    uint64_t available;    /**< Available memory in KB */
+    uint64_t buffers;      /**< Buffers memory in KB */
+    uint64_t cached;       /**< Cached memory in KB */
+    uint64_t shared;       /**< Shared memory in KB */
+    uint64_t used;         /**< Used memory in KB (calculated) */
+    uint64_t swap_total;   /**< Total swap memory in KB */
+    uint64_t swap_free;    /**< Free swap memory in KB */
+    uint64_t swap_used;    /**< Used swap memory in KB */
+    float percent_used;    /**< Memory usage percentage */
+} sl_mem_info_t;
+
+/* CPU usage percentages */
+typedef struct
+{
+    float user;
+    float nice;
+    float system;
+    float idle;
+    float iowait;
+    float irq;
+    float softirq;
+    float steal;
+    float total;           /**< Total CPU usage (100 - idle - iowait) */
+} sl_cpu_usage_t;
+
+/* Raw CPU counters snapshot */
+typedef struct
+{
+    uint64_t user;
+    uint64_t nice;
+    uint64_t system;
+    uint64_t idle;
+    uint64_t iowait;
+    uint64_t irq;
+    uint64_t softirq;
+    uint64_t steal;
+} sl_cpu_raw_t;
+
+/* System time information (seconds) */
+typedef struct
+{
+    double uptime;          /**< System uptime in seconds */
+    double idle_time;       /**< Total idle time in seconds */
+} sl_systime_info_t;
+
+/* Filesystem storage information (values in bytes) */
+typedef struct
+{
+    uint64_t total;         /**< Total storage in bytes */
+    uint64_t free;          /**< Free storage in bytes */
+    uint64_t available;     /**< Available storage in bytes */
+    uint64_t used;          /**< Used storage in bytes */
+    double percent_usage;   /**< Percentage of used storage */
+} sl_storage_info_t;
+
+/* ============================================================= */
+/*                        FUNCTION PROTOTYPES                     */
+/* ============================================================= */
+
+/* ------------------- Conversion helpers ---------------------- */
+
 /**
  * @brief Convert bytes to GB (rounded down)
  * @param bytes Input value in bytes
@@ -21,87 +91,31 @@ uint64_t sl_bytes_to_gb(uint64_t bytes);
 
 /**
  * @brief Convert KB to MB (rounded down)
- * @param kb Input value in kb
+ * @param kb Input value in KB
  * @return Value in MB
  */
 uint64_t sl_kb_to_mb(uint64_t kb);
 
-
-/* System time information */
-typedef struct {
-        double uptime;
-        double idle_time;
-} sl_systime_info_t;
-
-/* Raw CPU counters snapshot */
-typedef struct
-{
-        uint64_t user;
-        uint64_t nice;
-        uint64_t system;
-        uint64_t idle;
-        uint64_t iowait;
-        uint64_t irq;
-        uint64_t softirq;
-        uint64_t steal; 
-} sl_cpu_raw_t;
-
-/* Calculated CPU usage percentages */
-typedef struct
-{
-        float user;
-        float nice;
-        float system;
-        float idle;
-        float iowait;
-        float irq;
-        float softirq;
-        float steal;
-        float total;
-} sl_cpu_usage_t;
-
-/* Memory information (all values in kilobytes) */
-typedef struct
-{
-        uint64_t total;
-        uint64_t free;
-        uint64_t available;
-        uint64_t buffers;
-        uint64_t cached; 
-        uint64_t shared;
-        uint64_t used;
-        uint64_t swap_total;
-        uint64_t swap_free;
-        uint64_t swap_used;
-        float percent_used;
-} sl_mem_info_t;
-
-/* Filesysten storage information */
-typedef struct
-{
-        uint64_t total;
-        uint64_t free;
-        uint64_t available;
-        uint64_t used;
-        double percent_usage;
-} sl_storage_info_t;
+/* ------------------- System time ----------------------------- */
 
 /**
- * @brief Get systime information from /proc/uptime
- * @param result Pointer to store raw values
+ * @brief Get system uptime and idle time from /proc/uptime
+ * @param result Pointer to store values
  * @return 0 on success, -1 on error
  */
 int sl_systime_get_info(sl_systime_info_t *result);
 
+/* ------------------- CPU functions --------------------------- */
+
 /**
  * @brief Get raw CPU counters from /proc/stat
  * @param snapshot Pointer to store raw counters
- * @return 0 on success, -1 on error 
+ * @return 0 on success, -1 on error
  */
 int sl_cpu_get_raw(sl_cpu_raw_t *snapshot);
 
 /**
- * @brief Calculate CPU usage between two snapshots
+ * @brief Calculate CPU usage percentages between two snapshots
  * @param start First snapshot
  * @param end Second snapshot
  * @param result Pointer to store calculated percentages
@@ -111,30 +125,33 @@ int sl_cpu_calculate(const sl_cpu_raw_t *start, const sl_cpu_raw_t *end, sl_cpu_
 
 /**
  * @brief Get CPU usage over a time interval
- * @param interval_sec Measurement interval in seconds 
+ * @param interval_sec Measurement interval in seconds
  * @param result Pointer to store CPU usage percentages
  * @return 0 on success, -1 on error
  */
 int sl_cpu_get_usage(float interval_sec, sl_cpu_usage_t *result);
 
+/* ------------------- Memory functions ------------------------ */
 
 /**
- * @brief Calculate derived memory statistics
- * @param result Memory into structure with raw values
- * @return 0 on success, -1 if calculation failed
+ * @brief Calculate derived memory statistics (used memory, percent)
+ * @param result Memory info structure with raw fields populated
+ * @return 0 on success, -1 on error
  */
 int sl_mem_calculate(sl_mem_info_t *result);
 
 /**
  * @brief Get memory information from /proc/meminfo
  * @param result Pointer to store memory information
- * @return Number of successfully expected parsed fields, or -1 on error
+ * @return Number of successfully parsed expected fields, or -1 on error
  */
 int sl_mem_get_info(sl_mem_info_t *result);
 
+/* ------------------- Storage functions ----------------------- */
+
 /**
- * @brief Get filesystem storage information for mounted path
- * @param path Filesystem path to check
+ * @brief Get filesystem storage information for a mounted path
+ * @param path Filesystem path
  * @param result Pointer to store storage information
  * @return 0 on success, -1 on error
  */
