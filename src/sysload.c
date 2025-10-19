@@ -16,23 +16,15 @@ typedef struct
 
 int sleep_float(float seconds)
 {
-        struct timespec req;
-        float sec_frac;
-
-        if (seconds <= 0.0f) {
-                return 0;
-        }
-
+        if (seconds <= 0.0f) return 0;
+        struct timespec req, rem;
         req.tv_sec = (time_t)seconds;
-        sec_frac = seconds - (float)req.tv_sec;
-        req.tv_nsec = (long)(sec_frac * 1000000000L);
+        req.tv_nsec = (long)((seconds - req.tv_sec) * 1e9);
 
-        while (nanosleep(&req, &req) == -1) {
-                if (errno != EINTR) {
-                        return -1;
-                }
+        while (nanosleep(&req, &rem) == -1 && errno == EINTR) {
+                req = rem;
         }
-        return 0;
+        return 0; 
 }
 
 
@@ -326,7 +318,11 @@ int sl_storage_get_info(const char *path, sl_storage_info_t *result)
         
         result->used = result->total - result->free;
 
+        if (result->total == 0) {
+                result->percent_usage = 0.0;
+        } else {
         result->percent_usage = ((double)result->used / result->total) * 100.0;
-
+        }
+        
         return 0; 
 }
