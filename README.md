@@ -68,6 +68,7 @@ gcc main.c -o main -lsysload
 include/ -> public headers
 src/     -> Library source code
 example/ -> Example usage program
+tests/   -> Simple tests for library
 build/   -> Build artifacts
 Makefile -> Build and install script
 ```
