@@ -157,6 +157,26 @@ int sl_mem_get_info(sl_mem_info_t *result);
  */
 int sl_storage_get_info(const char *path, sl_storage_info_t *result);
 
+
+/* ----------------------- Logging ----------------------------- */
+/* Log  levels for library message */
+typedef enum {
+    SL_LOG_INFO,
+    SL_LOG_WARN,
+    SL_LOG_ERROR
+} sl_log_level_t;
+
+/* Log callback type */
+typedef void (*sl_log_handler_t)(sl_log_level_t level, const char* func, const char* msg, void* user_data);
+
+/**
+ * @brief Set library-wide log handler
+ * @param handler User-defined callback function, or NULL to disable logging
+ * @param user_data User data pointer passed to callback
+ */
+void sl_set_log_handler(sl_log_handler_t handler, void* user_data);
+
+
 #ifdef __cplusplus
 }
 #endif

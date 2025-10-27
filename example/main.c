@@ -9,8 +9,20 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+
+/* Simple log handler that prints library messages to stderr */
+void my_log(sl_log_level_t level, const char *func, const char *msg, void *user_data) {
+    const char *level_str = (level == SL_LOG_INFO) ? "INFO" :
+                            (level == SL_LOG_WARN) ? "WARN" : "ERROR";
+    FILE *f = (FILE *)user_data;  // user_data can be any FILE* or custom structure
+    fprintf(f, "[%s] %s: %s\n", level_str, func, msg);
+}
+
 int main() {
     printf("=== sysload Example: System Monitoring ===\n\n");
+
+    // --- Enable logging for the library ---
+    sl_set_log_handler(my_log, stderr); 
 
     // --- CPU Usage Monitoring ---
     printf("--- CPU Statistics (3-second interval) ---\n");

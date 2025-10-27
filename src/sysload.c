@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include <sys/statvfs.h>
 
 typedef struct
@@ -12,6 +13,28 @@ typedef struct
         size_t key_len;
         uint64_t *field; 
 } meminfo_field_t;
+
+static sl_log_handler_t g_log_handler = NULL;
+static void *g_log_user_data = NULL;
+
+void sl_set_log_handler(sl_log_handler_t handler, void* user_data)
+{
+        g_log_handler = handler;
+        g_log_user_data = user_data;
+}
+
+static void sl_log(sl_log_level_t level, const char* func, const char* fmt, ...)
+{
+        if (!g_log_handler) return;
+        
+        char buffer[512];
+        va_list args;
+        va_start(args, fmt);
+        vsnprintf(buffer, sizeof(buffer), fmt, args);
+        va_end(args);
+
+        g_log_handler(level, func, buffer, g_log_user_data);       
+}
 
 
 int sleep_float(float seconds)
@@ -42,7 +65,7 @@ uint64_t sl_kb_to_mb(uint64_t kb)
 int sl_systime_get_info(sl_systime_info_t *result)
 {       
         if (!result) {
-                fprintf(stderr, "Error: %s - result pointer is NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "result pointer is NULL");
                 return -1;
         }
 
@@ -51,7 +74,7 @@ int sl_systime_get_info(sl_systime_info_t *result)
 
         fptr = fopen("/proc/uptime", "r");
         if (fptr == NULL) {
-                fprintf(stderr, "Error: %s - failed to open /proc/uptime\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to open /proc/uptime");
                 return -1;
         }
 
@@ -62,9 +85,9 @@ int sl_systime_get_info(sl_systime_info_t *result)
         if (ret == 2) {
                 return 0;
         } else if (ret == EOF){
-                fprintf(stderr, "Error: %s - failed to read /proc/uptime (EOF)\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to read /proc/uptime (EOF)");
         } else {
-                fprintf(stderr, "Error: %s - failed to parse /proc/uptime (expected 2 fields, got %d)\n", __func__, ret); 
+                sl_log(SL_LOG_ERROR, __func__, "failed to parse /proc/uptime (expected 2 fields, got %d)", ret);
         }
 
         return -1; 
@@ -74,7 +97,7 @@ int sl_systime_get_info(sl_systime_info_t *result)
 int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
 {
         if (!snapshot) {
-                fprintf(stderr, "Error: %s - snapshot pointer is NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "snapshot pointer is NULL");
                 return -1;
         }
 
@@ -83,7 +106,7 @@ int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
 
         fptr = fopen("/proc/stat", "r");
         if (fptr == NULL) {
-                fprintf(stderr, "Error: %s - failed to open /proc/stat\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to open /proc/stat");
                 return -1;
         }
 
@@ -101,9 +124,9 @@ int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
         if (ret == 8) {
                 return 0;
         } else if (ret == EOF) {
-                fprintf(stderr, "Error: %s - failed to read from /proc/stat (EOF)\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to read from /proc/stat (EOF)");
         } else {
-                fprintf(stderr, "Error: %s - failed to parse /proc/stat (expected 8 fields, got %d)\n", __func__, ret);
+                sl_log(SL_LOG_ERROR, __func__, "failed to parse /proc/stat (expected 8 fields, got %d)", ret);
         }
         return -1;
 }
@@ -112,7 +135,7 @@ int sl_cpu_get_raw(sl_cpu_raw_t *snapshot)
 int sl_cpu_calculate(const sl_cpu_raw_t *start, const sl_cpu_raw_t *end, sl_cpu_usage_t *result)
 {       
         if (!start || !end || !result) {
-                fprintf(stderr, "Error: %s - start, end, result pointers are NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "start, end, result pointers are NULL");
                 return -1;
         }
 
@@ -138,7 +161,7 @@ int sl_cpu_calculate(const sl_cpu_raw_t *start, const sl_cpu_raw_t *end, sl_cpu_
                   + end->steal;
 
         if (total_end <= total_start) {
-                fprintf(stderr, "Error: %s - invalid time interval or counter overflow\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "invalid time interval or counter overflow");
                 return -1;
         }
 
@@ -167,29 +190,29 @@ int sl_cpu_calculate(const sl_cpu_raw_t *start, const sl_cpu_raw_t *end, sl_cpu_
 int sl_cpu_get_usage(float interval_sec, sl_cpu_usage_t *result)
 {       
         if (!result) {
-                fprintf(stderr, "Error: %s - result pointer is NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "result pointer is NULL");
                 return -1;
         }
 
         if (interval_sec < 0.1f) {
-                fprintf(stderr, "Error: %s - interval too small, minimum is 0.1 seconds\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "interval too small, minimum is 0.1 seconds");
                 return -1;
         }
 
         sl_cpu_raw_t start, end;
 
         if (sl_cpu_get_raw(&start)) {
-                fprintf(stderr, "Error: %s - failed to get CPU start snapshot\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to get CPU start snapshot");
                 return -1;
         }
 
         if (sleep_float(interval_sec) == -1) {
-                fprintf(stderr, "Error: %s - sleep failed\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "sleep failed");
                 return -1;
         }
 
         if (sl_cpu_get_raw(&end)) {
-                fprintf(stderr, "Error: %s - failed to get CPU end snapshot\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to get CPU end snapshot");
                 return -1;
         }
 
@@ -203,7 +226,7 @@ int parse_meminfo_line(const char *line, sl_mem_info_t *result)
         uint64_t value = 0;
 
         if (sscanf(line, "%31[^:]: %" SCNu64, key, &value) != 2) {
-                fprintf(stderr, "Error: %s - failed to parse meminfo line: %.100s\n", __func__, line);
+                sl_log(SL_LOG_ERROR, __func__, "failed to parse meminfo line: %.100s", line);
                 return -1;
         }
  
@@ -234,19 +257,19 @@ int parse_meminfo_line(const char *line, sl_mem_info_t *result)
 int sl_mem_calculate(sl_mem_info_t *result) 
 {       
         if (!result) {
-                fprintf(stderr, "Error: %s - result pointer is NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "result pointer is NULL");
                 return -1;
         }
 
         if (result->total == 0) {
-                fprintf(stderr, "Error: %s - total memory is zero\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "total memory is zero");
                 return -1;
         }
 
         if (result->available > 0) {
                 result->used = result-> total - result->available;
         } else {
-                fprintf(stderr, "Warning: %s - available memory is zero, falling back to total - free - buffers - cached\n", __func__);
+                sl_log(SL_LOG_WARN, __func__, "available memory is zero, falling back to total - free - buffers - cached");
                 result->used = result->total - result->free - result->buffers - result->cached;
                 if (result->used > result->total) {
                         result->used = result->total;
@@ -263,7 +286,7 @@ int sl_mem_calculate(sl_mem_info_t *result)
 int sl_mem_get_info(sl_mem_info_t *result)
 {       
         if (!result) {
-                fprintf(stderr, "Error: %s - result pointer is NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "result pointer is NULL");
                 return -1;
         }
 
@@ -271,7 +294,7 @@ int sl_mem_get_info(sl_mem_info_t *result)
 
         fptr = fopen("/proc/meminfo", "r");
         if (fptr == NULL) {
-                fprintf(stderr, "Error: %s - failed to open /proc/meminfo\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to open /proc/meminfo");
                 fclose(fptr);
                 return -1;
         }
@@ -289,7 +312,7 @@ int sl_mem_get_info(sl_mem_info_t *result)
 
 
         if (sl_mem_calculate(result) != 0) {
-                fprintf(stderr, "Error: %s - failed calculate meminfo usage\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "failed to calculate memory usage");
                 return -1;
         }
 
@@ -300,14 +323,14 @@ int sl_mem_get_info(sl_mem_info_t *result)
 int sl_storage_get_info(const char *path, sl_storage_info_t *result)
 {       
         if (!result) {
-                fprintf(stderr, "Error: %s - result pointer is NULL\n", __func__);
+                sl_log(SL_LOG_ERROR, __func__, "result pointer is NULL");
                 return -1;
         }
 
         struct statvfs svfs;
 
         if (statvfs(path, &svfs) == -1) {
-                fprintf(stderr, "Error: %s - failed to get filesystem info for %s\n", __func__, path);
+                sl_log(SL_LOG_ERROR, __func__, "failed to get filesystem info for %s", path);
                 return -1;
         }
 
