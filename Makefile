@@ -87,12 +87,12 @@ test: $(TEST_EXEC)
 	@./$(TEST_EXEC)
 
 clean:
-	rm -f $(SYSLOAD_OBJ) $(SYSLOAD_STATIC) $(SYSLOAD_SHARED) $(EXAMPLE_OBJ) $(EXAMPLE_EXEC) $(TEST_OBJ) ($TEST_EXEC)
+	rm -f $(SYSLOAD_OBJ) $(SYSLOAD_STATIC) $(SYSLOAD_SHARED) $(EXAMPLE_OBJ) $(EXAMPLE_EXEC) $(TEST_OBJ) $(TEST_EXEC)
 
 uninstall:
 	rm -f $(INSTALL_INCLUDE_DIR)/sysload.h
 	rm -f $(INSTALL_LIB_DIR)/$(SYSLOAD_LIBNAME).a
 	rm -f $(INSTALL_LIB_DIR)/$(SYSLOAD_LIBNAME).so
-	rmdir -f $(INSTALL_INCLUDE_DIR)/sysload
+	rmdir $(INSTALL_INCLUDE_DIR)
 
 .PHONY: all example run-example install install-static install-shared test uninstall clean

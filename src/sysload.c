@@ -295,14 +295,12 @@ int sl_mem_get_info(sl_mem_info_t *result)
         fptr = fopen("/proc/meminfo", "r");
         if (fptr == NULL) {
                 sl_log(SL_LOG_ERROR, __func__, "failed to open /proc/meminfo");
-                fclose(fptr);
                 return -1;
         }
 
         memset(result, 0, sizeof(sl_mem_info_t));
 
-        char line[MEMINFO_LINE_SIZE];
-        int missing_fields = EXPECTED_MEMINFO_KEYS; 
+        char line[MEMINFO_LINE_SIZE]; 
 
         while(fgets(line, sizeof(line), fptr) != NULL) {
                 parse_meminfo_line(line, result);
