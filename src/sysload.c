@@ -272,6 +272,7 @@ int sl_mem_get_info(sl_mem_info_t *result)
         fptr = fopen("/proc/meminfo", "r");
         if (fptr == NULL) {
                 fprintf(stderr, "Error: %s - failed to open /proc/meminfo\n", __func__);
+                fclose(fptr);
                 return -1;
         }
 
@@ -281,18 +282,18 @@ int sl_mem_get_info(sl_mem_info_t *result)
         int missing_fields = EXPECTED_MEMINFO_KEYS; 
 
         while(fgets(line, sizeof(line), fptr) != NULL) {
-                if (parse_meminfo_line(line, result) == 0) {
-                        missing_fields--;
-                }
-                
-        }
-
-        if (sl_mem_calculate(result)) {
-                fprintf(stderr, "Error: %s - failed calculate meminfo usage\n", __func__);
+                parse_meminfo_line(line, result);
         }
 
         fclose(fptr);
-        return (EXPECTED_MEMINFO_KEYS - missing_fields);
+
+
+        if (sl_mem_calculate(result) != 0) {
+                fprintf(stderr, "Error: %s - failed calculate meminfo usage\n", __func__);
+                return -1;
+        }
+
+        return 0;
 }
 
 

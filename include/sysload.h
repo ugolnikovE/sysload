@@ -143,7 +143,7 @@ int sl_mem_calculate(sl_mem_info_t *result);
 /**
  * @brief Get memory information from /proc/meminfo
  * @param result Pointer to store memory information
- * @return Number of successfully parsed expected fields, or -1 on error
+ * @return 0 on success, or -1 on error
  */
 int sl_mem_get_info(sl_mem_info_t *result);
 
