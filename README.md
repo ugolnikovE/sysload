@@ -32,7 +32,7 @@ After installation, the library and header will be available in your system (typ
 ## 💻 Example usage
 Below is a minimal example showing how to use sysload in your own project after installing the library.
 ```C
-#include "sysload.h"
+#include "sysload/sysload.h"
 #include <stdio.h>
 #include <inttypes.h>
 
@@ -62,6 +62,13 @@ Compile and Run:
 gcc main.c -o main -lsysload
 ./main
 ```
+
+## ❌ Uninstall
+To delete the library from the system, use the command:
+```
+sudo make uninstall
+```
+
 
 ## 📁 Project structure
 ```
