@@ -27,7 +27,7 @@ Requirements
 git clone https://github.com/ugolnikovE/sysload.git
 cd sysload
 cmake -B build
-cmake --build buil
+cmake --build build
 ```
 
 ### Install system-wide
