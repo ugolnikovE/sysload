@@ -11,6 +11,11 @@ extern "C" {
 #define MEMINFO_KEY_SIZE 32
 #define EXPECTED_MEMINFO_KEYS 8
 
+#define SYSLOAD_VERSION_MAJOR 0
+#define SYSLOAD_VERSION_MINOR 1
+#define SYSLOAD_VERSION_PATCH 0
+#define SYSLOAD_VERSION "0.1.0"
+
 
 /* ============================================================= */
 /*                        UNIT DEFINITIONS                       */

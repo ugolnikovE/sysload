@@ -18,14 +18,41 @@ Perfect for lightweight tools, embedded systems, or as an educational example of
 ---
 
 ## ⚙️ Build and Install
+Requirements
+- C compiler
+- CMake ≥ 3.10
 
+### Build
 ```bash
 git clone https://github.com/ugolnikovE/sysload.git
 cd sysload
-make all        # Build static and shared library + example
-sudo make install
+cmake -B build
+cmake --build buil
 ```
-After installation, the library and header will be available in your system (typically /usr/local/lib and /usr/local/include/sysload).
+
+### Install system-wide
+```bash
+sudo cmake --install build
+```
+Libraries will be installed to `/usr/local/lib` and headers to `/usr/local/include/sysload`
+
+---
+
+## 🔗 Use in another CMake project
+If you want to embed the library directly into your project (no system install required), you can use `FetchContent`:
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+        sysload
+        GIT_REPOSITORY https://github.com/ugolnikovE/sysload.git
+        GIT_TAG v0.1.0
+)
+
+FetchContent_MakeAvailable(sysload)
+
+target_link_libraries(myapp PRIVATE sysload)
+```
 
 ---
 
@@ -66,7 +93,7 @@ gcc main.c -o main -lsysload
 ## ❌ Uninstall
 To delete the library from the system, use the command:
 ```
-sudo make uninstall
+sudo cmake --build build --target uninstall
 ```
 
 
@@ -77,7 +104,7 @@ src/     -> Library source code
 example/ -> Example usage program
 tests/   -> Simple tests for library
 build/   -> Build artifacts
-Makefile -> Build and install script
+CMakeLists.txt
 ```
 
 ## 📚 License

@@ -1,0 +1,19 @@
+set(INSTALL_MANIFEST "${CMAKE_CURRENT_BINARY_DIR}/install_manifest.txt")
+
+if(NOT EXISTS "${INSTALL_MANIFEST}")
+        message(FATAL_ERROR "Install manifest not found. Did you run 'cmake --install'?")
+endif()
+
+file(READ "${INSTALL_MANIFEST}" files)
+string(REPLACE "\n" ";" files "${files}")
+
+foreach(f ${files})
+        if(EXISTS "${f}" OR IS_SYMLINK "${f}")
+                message(STATUS "Removing ${f}")
+                file(REMOVE "${f}")
+        else()
+                message(STATUS "File not found: ${f}")
+        endif()
+endforeach()
+
+message(STATUS "Uninstall complete.")
