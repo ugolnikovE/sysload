@@ -13,7 +13,7 @@ Perfect for lightweight tools, embedded systems, or as an educational example of
 - System uptime and idle time from '/proc/uptime'
 - Simple API, no dependencies
 - Works on any modern Linux system
-- Optional logging via user-provided callbaack
+- Optional logging via user-provided callback
 
 ---
 
