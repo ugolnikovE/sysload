@@ -59,7 +59,7 @@ target_link_libraries(myapp PRIVATE sysload)
 ## 💻 Example usage
 Below is a minimal example showing how to use sysload in your own project after installing the library.
 ```C
-#include "sysload.h"
+#include <sysload.h>
 #include <stdio.h>
 #include <inttypes.h>
 

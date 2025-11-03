@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(sysload VERSION 0.1.1 LANGUAGES C)
+project(sysload VERSION 0.1.2 LANGUAGES C)
 
 # Build options
 option(SYSLOAD_BUILD_SHARED "Build shared library" ON)
@@ -75,6 +75,8 @@ install(EXPORT sysloadTargets
         NAMESPACE sysload::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sysload)
 
+install(CODE "execute_process(COMMAND /sbin/ldconfig \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\" )")
+
 # Uninstall
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in"
@@ -84,4 +86,5 @@ configure_file(
 
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake
+    COMMAND /sbin/ldconfig
 )

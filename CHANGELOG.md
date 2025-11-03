@@ -1,3 +1,7 @@
+## 0.1.2 (2025-11-03)
+### Fixes:
+- Automatically run ldconfig after install/uninstall
+
 ## 0.1.1 (2025-11-03)
 ### Fixes:
 - CMake build and FetchContent support 
